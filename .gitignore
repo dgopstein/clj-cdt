@@ -1,0 +1,23 @@
+/target
+/classes
+/checkouts
+pom.xml
+pom.xml.asc
+*.class
+/.lein-*
+/.nrepl-port
+.hgignore
+.hg/
+
+# emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+.DS_Store
+tmp/
