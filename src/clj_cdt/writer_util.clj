@@ -1,6 +1,8 @@
 (ns clj-cdt.writer-util
   (:require [clojure.string :as str]
             [schema.core :as s]
+            [clj-cdt.clj-util :refer :all]
+            [clj-cdt.collection-util :refer :all]
             [clj-cdt.clj-cdt :refer :all])
   (:import [org.eclipse.cdt.internal.core.dom.rewrite
             ASTModificationStore astwriter.ASTWriter astwriter.ASTWriterVisitor
@@ -10,9 +12,7 @@
             IASTLiteralExpression IASTPreprocessorMacroDefinition IASTProblemHolder]
            [atom_finder SanitaryASTWriterVisitor]))
 
-(def tap)
 (def expr-operator)
-(def map-keys)
 
 (defn print-line-context
   "Print the line and the lines around it"

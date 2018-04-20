@@ -1,6 +1,9 @@
 (ns clj-cdt.clj-cdt
   (:require [clojure.string :as str]
-            [schema.core :as s])
+            [schema.core :as s]
+            [clj-cdt.clj-util :refer :all]
+            [clj-cdt.collection-util :refer :all]
+            )
   (:import [org.eclipse.cdt.core.dom.ast gnu.cpp.GPPLanguage gnu.c.GCCLanguage]
            [org.eclipse.cdt.core.parser DefaultLogService FileContent IncludeFileContentProvider ScannerInfo]
            [org.eclipse.cdt.core.dom.ast IASTNode IASTTranslationUnit IASTExpression
@@ -10,15 +13,10 @@
            [org.eclipse.cdt.internal.core.dom.parser.cpp CPPASTProblemStatement] ;TODO remove
            [org.eclipse.cdt.internal.core.parser.scanner ASTFileLocation])) ;TODO remove
 
-(def flip)
-(def arg-count)
-(def fn-pow)
+(def pmap-dir-files)
+
 (def expand-home)
 (def resource-path)
-(def find-after)
-(def if-let*)
-(def exists?)
-(def pmap-dir-files)
 
 (defmulti translation-unit class)
 (defmethod translation-unit java.io.File [file]
