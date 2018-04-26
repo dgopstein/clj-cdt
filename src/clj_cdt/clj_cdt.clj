@@ -28,12 +28,12 @@
         includePaths (make-array String 0)
         info (new ScannerInfo definedSymbols includePaths)
         log (new DefaultLogService)
-        ;savedIncludes (atom_finder.FileCodeReaderFactory/getInstance) ; Compiling include files bloats the AST of each parsed file, and paradoxically reduces the proportion of correctly typed nodes, because of the AST size inflation.
-        emptyIncludes (IncludeFileContentProvider/getEmptyFilesProvider)
+        savedIncludes (clj_cdt.FileCodeReaderFactory/getInstance) ; Compiling include files bloats the AST of each parsed file, and paradoxically reduces the proportion of correctly typed nodes, because of the AST size inflation.
+        ;emptyIncludes (IncludeFileContentProvider/getEmptyFilesProvider)
         opts 8]
 
     (.getASTTranslationUnit (GPPLanguage/getDefault) file-content
-                            info emptyIncludes org.eclipse.cdt.internal.core.index.EmptyCIndex/INSTANCE opts log)))
+                            info savedIncludes org.eclipse.cdt.internal.core.index.EmptyCIndex/INSTANCE opts log)))
 
 (defn c-tu
   "parse a C (not c++) file NOTE: This emits CAST classes which most of the codebase doesn't handle"
