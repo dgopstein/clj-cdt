@@ -11,52 +11,41 @@
                                          IASTDoStatement IASTCompositeTypeSpecifier IASTProblemStatement]
            [org.eclipse.cdt.core.dom.ast.cpp ICPPASTNamespaceDefinition]
            [org.eclipse.cdt.internal.core.dom.parser.cpp CPPASTProblemStatement] ;TODO remove
-           [org.eclipse.cdt.internal.core.parser.scanner ASTFileLocation])) ;TODO remove
+           [org.eclipse.cdt.internal.core.parser.scanner ASTFileLocation]
+           [org.eclipse.cdt.core.model ILanguage])) ;TODO remove
 
 (def pmap-dir-files)
 
 (def expand-home)
-(def resource-path)
 
-(defmulti translation-unit class)
-(defmethod translation-unit java.io.File [file]
-  (translation-unit (.getPath file)))
-(defmethod translation-unit String [filename]
-  (translation-unit (FileContent/createForExternalFileLocation filename)))
-(defmethod translation-unit FileContent [file-content]
+(defmulti translation-unit (fn [arg opts] (class arg)))
+(defmethod translation-unit java.io.File [file opts]
+  (translation-unit (.getPath file)) opts)
+(defmethod translation-unit String [filename opts]
+  (translation-unit (FileContent/createForExternalFileLocation filename) opts))
+(defmethod translation-unit FileContent
+  [file-content & [{:keys [language resolve-includes] :or {language :c++ resolve-includes true}}]]
   (let [definedSymbols {}
         includePaths (make-array String 0)
         info (new ScannerInfo definedSymbols includePaths)
         log (new DefaultLogService)
-        savedIncludes (clj_cdt.FileCodeReaderFactory/getInstance) ; Compiling include files bloats the AST of each parsed file, and paradoxically reduces the proportion of correctly typed nodes, because of the AST size inflation.
-        ;emptyIncludes (IncludeFileContentProvider/getEmptyFilesProvider)
-        opts 8]
+        include-resolver (if resolve-includes
+                           (clj_cdt.FileCodeReaderFactory/getInstance)
+                           (IncludeFileContentProvider/getEmptyFilesProvider))
+        ilanguage (case language
+                 ;; :assembly (org.eclipse.cdt.core.model.AssemblyLanguage/getDefault)
+                    :c   (GCCLanguage/getDefault)
+                    :c++ (GPPLanguage/getDefault))
+        flags (bit-or 0 ILanguage/OPTION_PARSE_INACTIVE_CODE)]
+    (.getASTTranslationUnit ilanguage file-content info include-resolver
+     org.eclipse.cdt.internal.core.index.EmptyCIndex/INSTANCE flags log)))
 
-    (.getASTTranslationUnit (GPPLanguage/getDefault) file-content
-                            info savedIncludes org.eclipse.cdt.internal.core.index.EmptyCIndex/INSTANCE opts log)))
+(defn parse-source
+  "Create an AST from in-memory source (filename is for documentation only)"
+  [source & [{:keys [filename] :or {filename "anonymously-parsed-code.c"}}]]
+    (translation-unit (FileContent/create filename (.toCharArray source)) opts))
 
-(defn c-tu
-  "parse a C (not c++) file NOTE: This emits CAST classes which most of the codebase doesn't handle"
-  [source]
-  (let [definedSymbols {}
-        includePaths (make-array String 0)
-        info (new ScannerInfo definedSymbols includePaths)
-        log (new DefaultLogService)
-        emptyIncludes (IncludeFileContentProvider/getEmptyFilesProvider)
-        opts 8]
-
-    ;; GCCLanguage parses some files (like K&R declarations) better
-    (.getASTTranslationUnit (GCCLanguage/getDefault)
-                            (FileContent/create "Anonymous C file"
-                                                (.toCharArray source)) info emptyIncludes
-                            org.eclipse.cdt.internal.core.index.EmptyCIndex/INSTANCE
-                            opts log)) )
-
-
-(defn mem-tu
-  "Create an AST from in-memory source (name is for documentation only)"
-  [filename source]
-  (translation-unit (FileContent/create filename (.toCharArray source))))
+(def parse-file (comp translation-unit expand-home))
 
 (defn children [node] (.getChildren node))
 
@@ -201,11 +190,6 @@
     (assert (nil? x2) (str "node should only have one child, but instead also had a second"))
     x1))
 
-(defn parse-source
-  "Turn a string of C source code into an AST"
-  [code]
-  (mem-tu "anonymously-parsed-code.c" code))
-
 (defn parse-stmt
   "Turn a single C statement into an AST"
   [code]
@@ -219,13 +203,6 @@
   (->> (str " (" code "\n);")
       parse-stmt
       (get-in-tree [0 0])))
-
-(def parse-file (comp translation-unit expand-home))
-
-(defn parse-resource
-  "Parse a file in the resource directory"
-  [filename]
-  (->> filename resource-path parse-file))
 
 ; core/org.eclipse.cdt.core/parser/org/eclipse/cdt/internal/core/dom/rewrite/changegenerator/ChangeGenerator.java:getNextSiblingNode(IASTNode node)
 (s/defn next-sibling :- (s/maybe IASTNode)

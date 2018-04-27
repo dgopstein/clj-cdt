@@ -6,7 +6,6 @@
                  [org.clojure/clojure "1.9.0-alpha4"]
                  [org.clojure/test.check "0.9.0"]
                  [prismatic/schema "1.1.3"]
-                 [swiss-arrows "1.0.0"]
                  ]
   :resource-paths ["./resources/org.eclipse.cdt.core_6.4.0.201803220800.jar"
                    "./resources/org.eclipse.core.resources_3.12.0.v20170417-1558.jar"

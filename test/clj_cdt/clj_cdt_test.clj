@@ -2,11 +2,36 @@
   (:require [clojure.test :refer :all]
             [clj-cdt.writer-util :refer :all]
             [clj-cdt.clj-cdt :refer :all]
+            [swiss.arrows :refer :all]
             )
-  (:import
-           [org.eclipse.cdt.core.dom.ast IASTExpression IASTLiteralExpression IASTDoStatement]))
+  (:import [org.eclipse.cdt.core.dom.ast IASTTranslationUnit IASTExpression IASTLiteralExpression IASTDoStatement
+            cpp.ICPPASTTranslationUnit]))
 
 (deftest cdt-util-test
+
+  (testing "parsing options"
+      (-> "int main() { return 1 + 2; }" parse-source write-ast (= "int main()\n{\n    return 1 + 2;\n}\n") (is "no options parse"))
+
+      (testing "filename"
+        (-> "int main() { return 1 + 2; }" parse-source filename (= "anonymously-parsed-code.c") (is "no options filename"))
+        (-> "int main() { return 1 + 2; }" (parse-source {:filename "abc.c"}) filename (= "abc.c") (is "filename")))
+
+      (testing "language"
+        (-<> "int main() { return 1 + 2; }" parse-source (instance? ICPPASTTranslationUnit <>) (is "no options language"))
+        (let [c-root (-> "int main() { return 1 + 2; }" (parse-source {:language :c}))]
+          (and
+           (-<> c-root (instance? IASTTranslationUnit <>) (is "parse c language"))
+           (-<> c-root (instance? ICPPASTTranslationUnit <>) not (is "parse c language")))))
+
+      (testing "includes"
+        include
+        (-<> "#include int main() { return 1 + 2; }" parse-source (instance? ICPPASTTranslationUnit <>) (is "no options language"))
+        (let [c-root (-> "int main() { return 1 + 2; }" (parse-source {:language :c}))]
+          (and
+           (-<> c-root (instance? IASTTranslationUnit <>) (is "parse c language"))
+           (-<> c-root (instance? ICPPASTTranslationUnit <>) not (is "parse c language")))))
+      )
+
     (testing "count-nodes"
       (is (= 3 (count-nodes (parse-expr "1 + 2"))))
       (is (= 6 (count-nodes (parse-expr "f(1 + 2)"))))
