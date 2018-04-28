@@ -14,8 +14,6 @@
            [org.eclipse.cdt.internal.core.parser.scanner ASTFileLocation]
            [org.eclipse.cdt.core.model ILanguage])) ;TODO remove
 
-(def pmap-dir-files)
-
 (s/defn translation-unit
   [file-content :- FileContent &
    [{:keys [language resolve-includes include-dirs]
@@ -388,15 +386,15 @@
   (let [{start :offset len :length} (loc node)]
     (binary-search-location-parent start len (root-ancestor node))))
 
-(s/defn pmap-dir-trees
-  "Apply a function to the root of the AST of every c file in a directory"
-  [f :- (s/=> s/Any [IASTTranslationUnit]) dirname :- s/Str]
-  (pmap-dir-files (comp f parse-file) dirname))
-
-(s/defn pmap-dir-nodes
-  "Apply a function to the every node of every c file in a directory"
-  [f :- (s/=> s/Any [IASTTranslationUnit]) dirname :- s/Str]
-  (flatten (pmap-dir-trees #(->> % flatten-tree (map f)) dirname)))
+;(s/defn map-dir-trees
+;  "Apply a function to the root of the AST of every c file in a directory"
+;  [f :- (s/=> s/Any [IASTTranslationUnit]) dirname :- s/Str]
+;  (map-dir-files (comp f parse-file) dirname))
+;
+;(s/defn map-dir-nodes
+;  "Apply a function to the every node of every c file in a directory"
+;  [f :- (s/=> s/Any [IASTTranslationUnit]) dirname :- s/Str]
+;  (flatten (map-dir-trees #(->> % flatten-tree (map f)) dirname)))
 
 (s/defn tree-path
   "the path from the root to this node"

@@ -12,8 +12,6 @@
             IASTLiteralExpression IASTPreprocessorMacroDefinition IASTProblemHolder]
            [atom_finder SanitaryASTWriterVisitor]))
 
-(def expr-operator)
-
 (defn print-line-context
   "Print the line and the lines around it"
   ([filename line-num] (print-line-context 2 filename line-num))
@@ -122,8 +120,8 @@
 (s/defmethod write-exp-node IASTLiteralExpression :- s/Str [node]
   (-> node .getValue String.))
 
-(s/defmethod write-exp-node IASTExpression :- s/Str [node]
-  (-> node expr-operator :syntax (or "")))
+;(s/defmethod write-exp-node IASTExpression :- s/Str [node]
+;  (-> node expr-operator :syntax (or "")))
 
 (s/defmethod write-exp-node :default :- s/Str [node]
   "")
