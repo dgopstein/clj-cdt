@@ -23,21 +23,22 @@
            (-<> c-root (instance? IASTTranslationUnit <>) (is "parse c language"))
            (-<> c-root (instance? ICPPASTTranslationUnit <>) not (is "parse c language")))))
 
+      (testing "filename"
+        (->> (parse-source "" {:directory "/a" :filename "b"}) filename (= "/a/b") is)
+        (->> (parse-source "" {:directory "a" :filename "b"}) filename (= "a/b") is)
+        (->> (parse-source "" {:filename "b"}) filename (= "b") is)
+        (->> (parse-source "" {:directory "a"}) filename (= "a/anonymously-parsed-code.c") is)
+        )
+
       (testing "includes"
         (-<> "int main() { return 1 + 2; }" parse-source (get-in-tree [0] <>) (instance? IASTFunctionDefinition <>) (is "no include statements"))
         (-<> "#include \"abc.c\"\n int main() { return 1 + 2; }" parse-source (get-in-tree [0] <>) (instance? IASTFunctionDefinition <>) (is "no resolved includes"))
 
-        (-<> "#include \"/Users/dgopstein/clj-cdt/src/test/resources/int_declaration.h\"" parse-source write-tree)
-        (-<> "#include \"int_declaration.h\"" parse-source write-tree)
+        (-<> "#include \"test/c/int_declaration.h\"" parse-source write-tree (= "int declaration;\n") is)
+        (-<> "#include \"test/c/int_declaration.h\"" (parse-source {:include-dirs []}) write-tree (= "") is)
 
-
-        (-> (clj_cdt.FileCodeReaderFactory/getInstance)
-            (.getContentForInclusion "../clj-cdt/int_declaration.h" nil))
-        (-> (clj_cdt.FileCodeReaderFactory/getInstance)
-            (.isIncludedWithPragmaOnceSemantics "/int_declaration.h"))
-
-        (-<> "#include \"/Users/dgopstein/clj-cdt/src/test/resources/int_declaration.h\"" (parse-source {:resolve-includes false}) write-tree)
-        (instance? IASTFunctionDefinition <>) (is "no resolved includes"))
+        (-<> "#include \"test/c/int_declaration.h\"" (parse-source {:resolve-includes false}) write-tree (= "") is)
+        )
       )
 
     (testing "count-nodes"
@@ -53,11 +54,6 @@
               (get-in-tree [0 2 0 0 0 0])
               node-name)
              )))
-
-  ;(deftest parse-includes
-  ;  (testing "translation-unit"
-  ;    (->> "include_parser.c" parse-resource (get-in-tree [1 2 0 0 2]) .getExpressionType str (= "int") is)
-  ;    ))
 
   (deftest parse-expr-stmt-test
     (testing "parse-expr/parse-stmt"

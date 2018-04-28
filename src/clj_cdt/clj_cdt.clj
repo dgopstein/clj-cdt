@@ -24,9 +24,10 @@
 (defmethod translation-unit String [filename opts]
   (translation-unit (FileContent/createForExternalFileLocation filename) opts))
 (defmethod translation-unit FileContent
-  [file-content & [{:keys [language resolve-includes] :or {language :c++ resolve-includes true}}]]
+  [file-content & [{:keys [language resolve-includes include-dirs]
+                    :or {language :c++ resolve-includes true include-dirs [(System/getProperty "user.dir")]}}]]
   (let [definedSymbols {}
-        includePaths (make-array String 0)
+        includePaths (into-array String include-dirs)
         info (new ScannerInfo definedSymbols includePaths)
         log (new DefaultLogService)
         include-resolver (if resolve-includes
@@ -42,9 +43,14 @@
 
 (defn parse-source
   "Create an AST from in-memory source (filename is for documentation only)"
-  [source & [{:as opts :keys [filename]
-              :or {filename (str (System/getProperty "user.dir") "/anonymously-parsed-code.c")}}]]
-    (translation-unit (FileContent/create filename (.toCharArray source)) opts))
+  [source & [{:as opts :keys [filename directory]
+              :or {filename "anonymously-parsed-code.c"
+                   directory nil}}]]
+  (let [filepath (if directory
+                   (.getPath (clojure.java.io/file directory filename))
+                   filename)]
+    (translation-unit (FileContent/create filepath (.toCharArray source)) opts)))
+
 
 (def parse-file (comp translation-unit expand-home))
 
