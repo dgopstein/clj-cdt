@@ -16,16 +16,11 @@
 
 (def pmap-dir-files)
 
-(def expand-home)
-
-(defmulti translation-unit (fn [arg opts] (class arg)))
-(defmethod translation-unit java.io.File [file opts]
-  (translation-unit (.getPath file)) opts)
-(defmethod translation-unit String [filename opts]
-  (translation-unit (FileContent/createForExternalFileLocation filename) opts))
-(defmethod translation-unit FileContent
-  [file-content & [{:keys [language resolve-includes include-dirs]
-                    :or {language :c++ resolve-includes true include-dirs [(System/getProperty "user.dir")]}}]]
+(s/defn translation-unit
+  [file-content :- FileContent &
+   [{:keys [language resolve-includes include-dirs]
+     :or {language :c++ resolve-includes true
+          include-dirs [(System/getProperty "user.dir")]}}]]
   (let [definedSymbols {}
         includePaths (into-array String include-dirs)
         info (new ScannerInfo definedSymbols includePaths)
@@ -51,8 +46,12 @@
                    filename)]
     (translation-unit (FileContent/create filepath (.toCharArray source)) opts)))
 
-
-(def parse-file (comp translation-unit expand-home))
+(defmulti parse-file (fn [arg & [opts]] (class arg)))
+(defmethod parse-file java.io.File [file & [opts]]
+  (parse-file (.getPath file) opts))
+(defmethod parse-file String [filename & [opts]]
+  (when-let [file-content (FileContent/createForExternalFileLocation filename)]
+    (translation-unit file-content opts)))
 
 (defn children [node] (.getChildren node))
 
