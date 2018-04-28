@@ -4,7 +4,7 @@
             [clj-cdt.clj-cdt :refer :all]
             [swiss.arrows :refer :all]
             )
-  (:import [org.eclipse.cdt.core.dom.ast IASTTranslationUnit IASTExpression IASTLiteralExpression IASTDoStatement
+  (:import [org.eclipse.cdt.core.dom.ast IASTTranslationUnit IASTExpression IASTLiteralExpression IASTDoStatement IASTFunctionDefinition
             cpp.ICPPASTTranslationUnit]))
 
 (deftest cdt-util-test
@@ -24,12 +24,20 @@
            (-<> c-root (instance? ICPPASTTranslationUnit <>) not (is "parse c language")))))
 
       (testing "includes"
-        include
-        (-<> "#include int main() { return 1 + 2; }" parse-source (instance? ICPPASTTranslationUnit <>) (is "no options language"))
-        (let [c-root (-> "int main() { return 1 + 2; }" (parse-source {:language :c}))]
-          (and
-           (-<> c-root (instance? IASTTranslationUnit <>) (is "parse c language"))
-           (-<> c-root (instance? ICPPASTTranslationUnit <>) not (is "parse c language")))))
+        (-<> "int main() { return 1 + 2; }" parse-source (get-in-tree [0] <>) (instance? IASTFunctionDefinition <>) (is "no include statements"))
+        (-<> "#include \"abc.c\"\n int main() { return 1 + 2; }" parse-source (get-in-tree [0] <>) (instance? IASTFunctionDefinition <>) (is "no resolved includes"))
+
+        (-<> "#include \"/Users/dgopstein/clj-cdt/src/test/resources/int_declaration.h\"" parse-source write-tree)
+        (-<> "#include \"int_declaration.h\"" parse-source write-tree)
+
+
+        (-> (clj_cdt.FileCodeReaderFactory/getInstance)
+            (.getContentForInclusion "../clj-cdt/int_declaration.h" nil))
+        (-> (clj_cdt.FileCodeReaderFactory/getInstance)
+            (.isIncludedWithPragmaOnceSemantics "/int_declaration.h"))
+
+        (-<> "#include \"/Users/dgopstein/clj-cdt/src/test/resources/int_declaration.h\"" (parse-source {:resolve-includes false}) write-tree)
+        (instance? IASTFunctionDefinition <>) (is "no resolved includes"))
       )
 
     (testing "count-nodes"

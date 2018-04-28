@@ -42,7 +42,8 @@
 
 (defn parse-source
   "Create an AST from in-memory source (filename is for documentation only)"
-  [source & [{:keys [filename] :or {filename "anonymously-parsed-code.c"}}]]
+  [source & [{:as opts :keys [filename]
+              :or {filename (str (System/getProperty "user.dir") "/anonymously-parsed-code.c")}}]]
     (translation-unit (FileContent/create filename (.toCharArray source)) opts))
 
 (def parse-file (comp translation-unit expand-home))
