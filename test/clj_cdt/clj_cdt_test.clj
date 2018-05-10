@@ -4,20 +4,24 @@
             [clj-cdt.clj-cdt :refer :all]
             [swiss.arrows :refer :all]
             )
-  (:import [org.eclipse.cdt.core.dom.ast IASTTranslationUnit IASTExpression IASTLiteralExpression IASTDoStatement IASTFunctionDefinition
+  (:import [org.eclipse.cdt.core.dom.ast IASTTranslationUnit IASTExpression
+            IASTLiteralExpression IASTDoStatement IASTFunctionDefinition
             cpp.ICPPASTTranslationUnit]))
 
 (deftest cdt-util-test
-
   (testing "parsing options"
-      (-> "int main() { return 1 + 2; }" parse-source write-ast (= "int main()\n{\n    return 1 + 2;\n}\n") (is "no options parse"))
+    (-> "int main() { return 1 + 2; }" parse-source write-ast
+        (= "int main()\n{\n    return 1 + 2;\n}\n") (is "no options parse"))
 
       (testing "filename"
-        (-> "int main() { return 1 + 2; }" parse-source filename (= "anonymously-parsed-code.c") (is "no options filename"))
-        (-> "int main() { return 1 + 2; }" (parse-source {:filename "abc.c"}) filename (= "abc.c") (is "filename")))
+        (-> "int main() { return 1 + 2; }" parse-source filename
+            (= "anonymously-parsed-code.c") (is "no options filename"))
+        (-> "int main() { return 1 + 2; }" (parse-source {:filename "abc.c"}) filename
+            (= "abc.c") (is "filename")))
 
       (testing "language"
-        (-<> "int main() { return 1 + 2; }" parse-source (instance? ICPPASTTranslationUnit <>) (is "no options language"))
+        (-<> "int main() { return 1 + 2; }" parse-source
+             (instance? ICPPASTTranslationUnit <>) (is "no options language"))
         (let [c-root (-> "int main() { return 1 + 2; }" (parse-source {:language :c}))]
           (and
            (-<> c-root (instance? IASTTranslationUnit <>) (is "parse c language"))
@@ -31,13 +35,18 @@
         )
 
       (testing "includes"
-        (-<> "int main() { return 1 + 2; }" parse-source (get-in-tree [0] <>) (instance? IASTFunctionDefinition <>) (is "no include statements"))
-        (-<> "#include \"abc.c\"\n int main() { return 1 + 2; }" parse-source (get-in-tree [0] <>) (instance? IASTFunctionDefinition <>) (is "no resolved includes"))
+        (-<> "int main() { return 1 + 2; }" parse-source (get-in-tree [0] <>)
+             (instance? IASTFunctionDefinition <>) (is "no include statements"))
+        (-<> "#include \"abc.c\"\n int main() { return 1 + 2; }" parse-source (get-in-tree [0] <>)
+             (instance? IASTFunctionDefinition <>) (is "no resolved includes"))
 
-        (-<> "#include \"test/c/int_declaration.h\"" parse-source write-tree (= "int declaration;\n") is)
-        (-<> "#include \"test/c/int_declaration.h\"" (parse-source {:include-dirs []}) write-tree (= "") is)
+        (-<> "#include \"test/c/int_declaration.h\"" parse-source write-tree
+             (= "int declaration;\n") is)
+        (-<> "#include \"test/c/int_declaration.h\"" (parse-source {:include-dirs []}) write-tree
+             (= "") is)
 
-        (-<> "#include \"test/c/int_declaration.h\"" (parse-source {:resolve-includes false}) write-tree (= "") is)
+        (-<> "#include \"test/c/int_declaration.h\"" (parse-source {:resolve-includes false}) write-tree
+             (= "") is)
         )
       )
 
@@ -100,16 +109,24 @@
       (is (= 3 (->> root children first children first depth)))
       (is (= 6 (->> root (get-in-tree [0 2 0 0 0]) depth)))
       ))
-  )
 
-(deftest filter-tree-test
   (testing "filter-tree"
     (is
      (= ["1" "2" "3"]
         (->> "1 + 2 - 3" parse-expr
              (filter-tree (partial instance? IASTLiteralExpression))
-             (map write-ast))))
-    ))
+             (map write-tree))))
+    )
+
+  (testing "strip-inclusion"
+    (let [root (parse-source "#include \"test/c/int_declaration.h\" \n int main(){}")]
+      (->> root flatten-tree rest (filter from-include?)
+           first write-tree (= "int declaration;\n") is)
+
+      (->> root flatten-tree rest (remove from-include?)
+           first node-name (= "main") is))
+    )
+  )
 
 (deftest writer-util-test
   (testing "write-node"

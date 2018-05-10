@@ -5,10 +5,12 @@
             [clj-cdt.collection-util :refer :all]
             )
   (:import [org.eclipse.cdt.core.dom.ast gnu.cpp.GPPLanguage gnu.c.GCCLanguage]
-           [org.eclipse.cdt.core.parser DefaultLogService FileContent IncludeFileContentProvider ScannerInfo]
-           [org.eclipse.cdt.core.dom.ast IASTNode IASTTranslationUnit IASTExpression
-                                         IASTBinaryExpression IASTLiteralExpression
-                                         IASTDoStatement IASTCompositeTypeSpecifier IASTProblemStatement]
+           [org.eclipse.cdt.core.parser DefaultLogService FileContent
+            IncludeFileContentProvider ScannerInfo]
+           [org.eclipse.cdt.core.dom.ast IASTNode IASTTranslationUnit
+            IASTExpression IASTBinaryExpression IASTLiteralExpression
+            IASTDoStatement IASTCompositeTypeSpecifier IASTProblemStatement
+            IASTName IASTIdExpression IASTDeclarator IASTFunctionDefinition]
            [org.eclipse.cdt.core.dom.ast.cpp ICPPASTNamespaceDefinition]
            [org.eclipse.cdt.internal.core.dom.parser.cpp CPPASTProblemStatement] ;TODO remove
            [org.eclipse.cdt.internal.core.parser.scanner ASTFileLocation]
@@ -275,7 +277,7 @@
     (range s (inc e))
     []))
 
-(defn filename [node] (.getFileName (.getFileLocation node)))
+(defn filename [node] (some-> node .getFileLocation .getFileName))
 
 (defn all-preprocessor [node] (->> node root-ancestor .getAllPreprocessorStatements))
 (defn all-macro-defs [node] (->> node root-ancestor .getMacroDefinitions))
@@ -405,8 +407,15 @@
       (conj (tree-path dad) (.indexOf (seq (children dad)) node)))))
 
 ; The name of the variable/function/argument/etc
-(import '(org.eclipse.cdt.internal.core.dom.parser.cpp CPPASTName CPPASTIdExpression))
 (defmulti node-name class)
-(defmethod node-name CPPASTName [node] (-> node .getSimpleID String.))
-(defmethod node-name CPPASTIdExpression [node] (-> node .getName node-name))
+(defmethod node-name IASTName [node] (-> node .getSimpleID String.))
+(defmethod node-name IASTIdExpression [node] (-> node .getName node-name))
+(defmethod node-name IASTDeclarator [node] (-> node .getName node-name))
+(defmethod node-name IASTFunctionDefinition [node] (-> node .getDeclarator node-name))
 (defmethod node-name :default [node] nil)
+
+(s/defn from-include?
+  "Does this AST node originate in an included file"
+  ([node :- IASTNode] (from-include? (root-ancestor node) node))
+  ([root :- IASTTranslationUnit node :- IASTNode]
+   (not (=by filename root node))))

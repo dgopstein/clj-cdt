@@ -15,6 +15,7 @@ public class FileCodeReaderFactory extends InternalFileContentProvider {
 
   @Override
   public InternalFileContent getContentForInclusion(String path, IMacroDictionary macroDictionary) {
+    //System.out.println("getContentForInclusion: "+path);
     return (InternalFileContent) FileContent.createForExternalFileLocation(path);
   }
 
