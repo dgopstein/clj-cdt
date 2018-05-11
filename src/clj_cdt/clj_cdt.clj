@@ -53,7 +53,8 @@
   (when-let [file-content (FileContent/createForExternalFileLocation filename)]
     (translation-unit file-content opts)))
 
-(defn children [node] (.getChildren node))
+(defmulti children class)
+(defmethod children IASTNode [node] (.getChildren node))
 
 (defn parent [node] (.getParent node))
 (defn safe-parent [node] (or (.getParent node) node))
