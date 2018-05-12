@@ -199,9 +199,9 @@
 (defn parse-stmt
   "Turn a single C statement into an AST"
   [code]
-  (-> (str "int main() {" code "\n} ")
+  (->> (str "int main() {" code "\n} ")
       parse-source
-      ((flip get-in-tree) [0 2 0])))
+      (get-in-tree [0 2 0])))
 
 (defn parse-expr
   "Turn a single C expression into an AST"
@@ -292,8 +292,9 @@
   [macro-def]
   (let [[all name args body] (->> macro-def str (re-find #"^([^=(]*)(?:\(([^)]*)\))?=(.*)"))]
     {:name name
-     :args (some->> args ((flip str/split) #",") (remove empty?))
+     :args (remove empty? (some-> args (str/split #",")))
      :body body}))
+
 
 (s/defn parse-macro-def-body
   "Try to turn the body of a macro definition into
