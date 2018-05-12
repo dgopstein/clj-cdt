@@ -99,11 +99,12 @@
       (.accept (fix-node node) writer-visitor)
       (str/replace (or (.toString writer-visitor) "") #"\s" ""))))
 
-(s/defn write-node :- s/Str [node :- IASTNode]
-      (let [node-str (write-node-no-type node)]
-        (if (empty? node-str)
-          (write-node-type node)
-          node-str)))
+(defmulti write-node class)
+(s/defmethod write-node IASTNode :- s/Str [node]
+  (let [node-str (write-node-no-type node)]
+    (if (empty? node-str)
+      (write-node-type node)
+      node-str)))
 
 (s/defn write-node-valueless :- s/Str
   "Don't write variable names, instead use their type"
