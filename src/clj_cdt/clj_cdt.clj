@@ -1,6 +1,7 @@
 (ns clj-cdt.clj-cdt
   (:require [clojure.string :as str]
             [schema.core :as s]
+            [swiss.arrows :refer :all]
             [clj-cdt.clj-util :refer :all]
             [clj-cdt.collection-util :refer :all]
             )
@@ -292,9 +293,8 @@
   [macro-def]
   (let [[all name args body] (->> macro-def str (re-find #"^([^=(]*)(?:\(([^)]*)\))?=(.*)"))]
     {:name name
-     :args (remove empty? (some-> args (str/split #",")))
+     :args (some-<>> args (str/split <> #",") (remove empty?))
      :body body}))
-
 
 (s/defn parse-macro-def-body
   "Try to turn the body of a macro definition into
