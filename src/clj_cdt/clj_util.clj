@@ -39,8 +39,6 @@
         ~else)
           then)))
 
-(defn now [] (java.time.LocalDateTime/now))
-
 ; https://github.com/clojure/clojure/blob/clojure-1.9.0-alpha14/src/clj/clojure/core.clj#L3836
 (defmacro time-mins
   "Evaluates expr and prints the time it took.  Returns the value of expr."
