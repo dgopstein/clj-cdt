@@ -41,7 +41,8 @@
 
 ;; mostly for human consumption, tries to provide an
 ;; informative representation of the AST
-(defn write-tree [node]
+(defmulti write-tree class)
+(defmethod write-tree IASTNode [node]
   (if (nil? node)
     "<nil>"
     (try
