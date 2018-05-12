@@ -18,16 +18,15 @@
 
 (s/defn translation-unit
   [file-content :- FileContent &
-   [{:keys [language resolve-includes include-dirs]
-     :or {language :c++ resolve-includes true
-          include-dirs [(System/getProperty "user.dir")]}}]]
+   [{:keys [language include-dirs]
+     :or {language :c++ include-dirs []}}]]
   (let [definedSymbols {}
         includePaths (into-array String include-dirs)
         info (new ScannerInfo definedSymbols includePaths)
         log (new DefaultLogService)
-        include-resolver (if resolve-includes
-                           (clj_cdt.FileCodeReaderFactory/getInstance)
-                           (IncludeFileContentProvider/getEmptyFilesProvider))
+        include-resolver (if (empty? include-dirs)
+                           (IncludeFileContentProvider/getEmptyFilesProvider)
+                           (clj_cdt.FileCodeReaderFactory/getInstance))
         ilanguage (case language
                  ;; :assembly (org.eclipse.cdt.core.model.AssemblyLanguage/getDefault)
                     :c   (GCCLanguage/getDefault)

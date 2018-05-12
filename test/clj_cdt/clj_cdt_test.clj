@@ -8,6 +8,8 @@
             IASTLiteralExpression IASTDoStatement IASTFunctionDefinition
             cpp.ICPPASTTranslationUnit]))
 
+(defn working-dir [] (System/getProperty "user.dir"))
+
 (deftest cdt-util-test
   (testing "parsing options"
     (-> "int main() { return 1 + 2; }" parse-source write-ast
@@ -41,12 +43,12 @@
              (instance? IASTFunctionDefinition <>) (is "no resolved includes"))
 
         (-<> "#include \"test/c/int_declaration.h\"" parse-source write-tree
-             (= "int declaration;\n") is)
+             (= "") is)
         (-<> "#include \"test/c/int_declaration.h\"" (parse-source {:include-dirs []}) write-tree
              (= "") is)
 
-        (-<> "#include \"test/c/int_declaration.h\"" (parse-source {:resolve-includes false}) write-tree
-             (= "") is)
+        (-<> "#include \"test/c/int_declaration.h\"" (parse-source {:include-dirs [(working-dir)]}) write-tree
+             (= "int declaration;\n") is)
         )
       )
 
@@ -119,7 +121,8 @@
     )
 
   (testing "strip-inclusion"
-    (let [root (parse-source "#include \"test/c/int_declaration.h\" \n int main(){}")]
+    (let [root (parse-source "#include \"test/c/int_declaration.h\" \n int main(){}"
+                             {:include-dirs [(working-dir)]})]
       (->> root flatten-tree rest (filter from-include?)
            first write-tree (= "int declaration;\n") is)
 
