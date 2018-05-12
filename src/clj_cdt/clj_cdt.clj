@@ -19,13 +19,14 @@
 
 (s/defn translation-unit
   [file-content :- FileContent &
-   [{:keys [language include-dirs]
-     :or {language :c++ include-dirs []}}]]
+   [{:keys [language include-dirs resolve-includes]
+     :or {language :c++ include-dirs [] resolve-includes false}}]]
   (let [definedSymbols {}
         includePaths (into-array String include-dirs)
         info (new ScannerInfo definedSymbols includePaths)
         log (new DefaultLogService)
-        include-resolver (if (empty? include-dirs)
+        include-resolver (if (and (not resolve-includes)
+                                  (empty? include-dirs))
                            (IncludeFileContentProvider/getEmptyFilesProvider)
                            (clj_cdt.FileCodeReaderFactory/getInstance))
         ilanguage (case language
