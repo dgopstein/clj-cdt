@@ -2,6 +2,7 @@
   (:require [clojure.string :as str]
             [schema.core :as s]
             [clj-cdt.clj-util :refer :all]
+            [clj-cdt.expr-operator :refer :all]
             [clj-cdt.collection-util :refer :all]
             [clj-cdt.clj-cdt :refer :all])
   (:import [org.eclipse.cdt.internal.core.dom.rewrite
@@ -122,8 +123,8 @@
 (s/defmethod write-exp-node IASTLiteralExpression :- s/Str [node]
   (-> node .getValue String.))
 
-;(s/defmethod write-exp-node IASTExpression :- s/Str [node]
-;  (-> node expr-operator :syntax (or "")))
+(s/defmethod write-exp-node IASTExpression :- s/Str [node]
+  (-> node expr-operator :syntax (or "")))
 
 (s/defmethod write-exp-node :default :- s/Str [node]
   "")
@@ -132,7 +133,10 @@
   (pre-tree
    (fn [node index tree-path]
        (printf "%-60s %s\n"
-               (str tree-path "  " (write-node-type node) "  " ((if intersects-macro-exp? write-exp-node write-node-no-type) node))
+               (str tree-path "  " (write-node-type node) "  "
+                    (if (intersects-macro-exp? node)
+                       (write-node-no-type node)
+                       (write-exp-node node)))
                (->> (select-keys (loc node) [:line :offset :length])
                     (map-keys (fn [k] (if (-> k name count (> 4)) (keyword (subs (name k) 0 3)) k))))
                ))
