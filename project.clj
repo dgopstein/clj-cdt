@@ -1,4 +1,4 @@
-(defproject clj-cdt "0.0.2"
+(defproject clj-cdt "0.0.3"
   :description "Library for parsing C/C++"
   :license {:name "The MIT License (MIT)"
             :url  "http://opensource.org/licenses/MIT"}
