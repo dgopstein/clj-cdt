@@ -28,8 +28,8 @@
       {
        IASTUnaryExpression/op_prefixIncr       {:enum 0  :arity 1 :name :prefixIncr       :precedence 3  :syntax "++x"    }
        IASTUnaryExpression/op_prefixDecr       {:enum 1  :arity 1 :name :prefixDecr       :precedence 3  :syntax "--x"    }
-       IASTUnaryExpression/op_plus             {:enum 2  :arity 1 :name :plus             :precedence 3  :syntax "+x"     }
-       IASTUnaryExpression/op_minus            {:enum 3  :arity 1 :name :minus            :precedence 3  :syntax "-x"     }
+       IASTUnaryExpression/op_plus             {:enum 2  :arity 1 :name :plus1            :precedence 3  :syntax "+x"     }
+       IASTUnaryExpression/op_minus            {:enum 3  :arity 1 :name :minus1           :precedence 3  :syntax "-x"     }
        IASTUnaryExpression/op_star             {:enum 4  :arity 1 :name :star             :precedence 3  :syntax "*x"     }
        IASTUnaryExpression/op_amper            {:enum 5  :arity 1 :name :amper            :precedence 3  :syntax "&x"     }
        IASTUnaryExpression/op_tilde            {:enum 6  :arity 1 :name :tilde            :precedence 3  :syntax "~x"     }
@@ -51,8 +51,8 @@
        IASTBinaryExpression/op_multiply          {:enum 1  :arity 2 :name :multiply         :precedence 5  :syntax "*"    }
        IASTBinaryExpression/op_divide            {:enum 2  :arity 2 :name :divide           :precedence 5  :syntax "/"    }
        IASTBinaryExpression/op_modulo            {:enum 3  :arity 2 :name :modulo           :precedence 5  :syntax "%"    }
-       IASTBinaryExpression/op_plus              {:enum 4  :arity 2 :name :plus             :precedence 6  :syntax "+"    }
-       IASTBinaryExpression/op_minus             {:enum 5  :arity 2 :name :minus            :precedence 6  :syntax "-"    }
+       IASTBinaryExpression/op_plus              {:enum 4  :arity 2 :name :plus2            :precedence 6  :syntax "+"    }
+       IASTBinaryExpression/op_minus             {:enum 5  :arity 2 :name :minus2           :precedence 6  :syntax "-"    }
        IASTBinaryExpression/op_shiftLeft         {:enum 6  :arity 2 :name :shiftLeft        :precedence 7  :syntax "<<"   }
        IASTBinaryExpression/op_shiftRight        {:enum 7  :arity 2 :name :shiftRight       :precedence 7  :syntax ">>"   }
        IASTBinaryExpression/op_lessThan          {:enum 8  :arity 2 :name :lessThan         :precedence 8  :syntax "<"    }
