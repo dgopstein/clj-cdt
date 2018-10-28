@@ -47,6 +47,7 @@
 
       )
 
+  ;; Make sure we can accept statements as parents
   (let [stmt (parse-stmt "(2 * 3);")]
 
     (is (= "(2 * 3);\n"
@@ -55,4 +56,12 @@
                                (nth (children stmt) 0)))))
 
     )
-    ))
+
+  ;; make sure we can set function name expressions
+  (let [node (->> "len = (size_t)(temp - txt + 1)" parse-expr (get-in-tree [1 0]))
+        mom (parent node)
+        kid (child node)]
+
+    (is (= "size_t(temp - txt + 1)" (write-ast (replace-expr mom node kid))))
+    )
+  ))

@@ -81,14 +81,16 @@
   (let [args (.getArguments fn-expr)
         unfrozen-fn-expr (.copy fn-expr)
         unfrozen-args (.getArguments unfrozen-fn-expr)]
-    {:getters (map constantly args)
+    {:getters (cons #(.getFunctionNameExpression fn-expr) (map constantly args))
      :setters
-     (->> unfrozen-args
-          (map-indexed
-           (fn [idx _]
-             (fn [new-child]
-               (aset unfrozen-args idx (.copy new-child))
-               unfrozen-fn-expr))))}
+     (cons #(do (.setFunctionNameExpression unfrozen-fn-expr (.copy %))
+                unfrozen-fn-expr)
+           (->> unfrozen-args
+                (map-indexed
+                 (fn [idx _]
+                   (fn [new-child]
+                     (aset unfrozen-args idx (.copy new-child))
+                     unfrozen-fn-expr)))))}
     )
   )
 
