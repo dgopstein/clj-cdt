@@ -4,7 +4,7 @@
   (:require
    [schema.core :as s])
   (:import
-   [org.eclipse.cdt.core.dom.ast IASTArrayModifier IASTArraySubscriptExpression
+   [org.eclipse.cdt.core.dom.ast IASTNode IASTArrayModifier IASTArraySubscriptExpression
       IASTBinaryExpression IASTCaseStatement IASTCastExpression
       IASTConditionalExpression IASTDoStatement IASTEnumerationSpecifier
       IASTEqualsInitializer IASTExpression IASTExpressionList
@@ -108,11 +108,11 @@
   )
 
 (s/defn expr-getters-setters :- {:getters [(s/=> IASTExpression)]
-                                 :setters [(s/=> IASTExpression IASTExpression)]}
+                                 :setters [(s/=> IASTNode IASTExpression)]}
   "For a given expression AST node, return functions that get/set it's children.
    The getters operate on the original node, so that children may be matched by
    equality,and the setters operate on a copy, so that it may be mutated."
-  [node :- IASTExpression]
+  [node :- IASTNode]
   (condp instance? node
     IASTFunctionCallExpression (-function-call-getter-setter node)
     IASTExpressionList         (-expression-list-getter-setter node)
@@ -130,10 +130,10 @@
                                              unfrozen-node))))
            ))))
 
-(s/defn replace-expr :- IASTExpression
+(s/defn replace-expr :- IASTNode
   "Update a child inside a parent node.
    Returns an updated copy of the parent."
-  [parent :- IASTExpression
+  [parent :- IASTNode
    old-child :- IASTExpression
    new-child :- IASTExpression]
   (let [{getters :getters setters :setters} (expr-getters-setters parent)

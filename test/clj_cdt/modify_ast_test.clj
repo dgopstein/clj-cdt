@@ -46,4 +46,13 @@
                                  (nth (children expr) 0)))))
 
       )
+
+  (let [stmt (parse-stmt "(2 * 3);")]
+
+    (is (= "(2 * 3);\n"
+           (write-tree
+            (replace-expr stmt (nth (children stmt) 0)
+                               (nth (children stmt) 0)))))
+
+    )
     ))
