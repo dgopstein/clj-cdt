@@ -20,10 +20,10 @@
    [org.eclipse.cdt.core.dom.ast.c ICASTArrayDesignator]
    [org.eclipse.cdt.core.dom.ast.cpp ICPPASTArrayDesignator
       ICPPASTConstructorChainInitializer ICPPASTConstructorInitializer
-      ICPPASTDeleteExpression ICPPASTFunctionDeclarator ICPPASTNewExpression
-      ICPPASTPackExpansionExpression ICPPASTSimpleTypeConstructorExpression
-      ICPPASTTemplateId ICPPASTTemplatedTypeTemplateParameter
-      ICPPASTTypenameExpression]
+      ICPPASTDeleteExpression ICPPASTFunctionDeclarator ICPPASTInitializerList
+      ICPPASTNewExpression ICPPASTPackExpansionExpression
+      ICPPASTSimpleTypeConstructorExpression ICPPASTTemplateId
+      ICPPASTTemplatedTypeTemplateParameter ICPPASTTypenameExpression]
    [org.eclipse.cdt.core.dom.ast.gnu cpp.IGPPASTSimpleDeclSpecifier
            c.IGCCASTArrayRangeDesignator c.IGCCASTSimpleDeclSpecifier
            IGNUASTGotoStatement]))
@@ -118,34 +118,21 @@
     )
   )
 
-(s/defn -constructor-initializer-getter-setter
-  [cons-init :- ICPPASTConstructorInitializer]
-  (let [args (.getArguments cons-init)
-        thawed-cons-init (.copy cons-init)
-        thawed-args (.getArguments thawed-cons-init)]
-    {:getters (map constantly args)
-     :setters (->> thawed-args
-                (map (fn [old-arg]
-                       (fn [new-arg]
-                         (.replace thawed-cons-init old-arg (.copy new-arg))
-                         thawed-cons-init))))}
-    )
-  )
-
-(s/defn -expression-list-getter-setter
-  [expr-list :- IASTExpressionList]
-  (let [exprs (.getExpressions expr-list)
-        thawed-expr-list (.copy expr-list)
-        thawed-exprs (.getExpressions thawed-expr-list)]
-    {:getters (map constantly exprs)
-     :setters
-     (->> thawed-exprs
-          (map (fn [thawed-expr]
-                 (fn [new-child]
-                   (.replace thawed-expr-list thawed-expr (.copy new-child))
-                   thawed-expr-list))))}
-    )
-  )
+(s/defn -getters-setters-using-replace
+  "Some GCC specific AST nodes use .replace to swap out children.
+   This function takes the boilerplate out of configuring those
+   getter/setter generation functions"
+  [get-args-fn parent-node]
+    (let [args (get-args-fn parent-node)
+          thawed-parent-node (.copy parent-node)
+          thawed-args (get-args-fn thawed-parent-node)]
+      {:getters (map constantly args)
+       :setters (->> thawed-args
+                     (map (fn [old-arg]
+                            (fn [new-arg]
+                              (.replace thawed-parent-node old-arg (.copy new-arg))
+                              thawed-parent-node))))}
+    ))
 
 (s/defn expr-getters-setters :- {:getters [(s/=> IASTExpression)]
                                  :setters [(s/=> IASTNode IASTExpression)]}
@@ -156,8 +143,9 @@
   (condp instance? node
     IASTFunctionCallExpression    (-function-call-getter-setter node)
     ICPPASTTemplateId             (-template-id-getter-setter node)
-    IASTExpressionList            (-expression-list-getter-setter node)
-    ICPPASTConstructorInitializer (-constructor-initializer-getter-setter node)
+    IASTExpressionList            (-getters-setters-using-replace (memfn getExpressions) node)
+    ICPPASTConstructorInitializer (-getters-setters-using-replace (memfn getArguments) node)
+    ICPPASTInitializerList        (-getters-setters-using-replace (memfn getClauses) node)
     (let [thawed-node (.copy node)
           getter-setter-map
             (->> -expr-getters-setters-by-type

@@ -91,4 +91,19 @@
     (->> (replace-expr mom node kid) write-ast (= "(Merge_chunk_less(compare_context), (Malloc_allocator<Merge_chunk*>(key_memory_Unique_merge_buffer)))") is)
     )
 
+
+  ;; the code for initializer-lists is directly copied from the constructor list code. refactor it
+  (let [node (->> "a b[] = {{1, (2 | 3)}};" parse-stmt (get-in-tree [0 1 2 0 0 1]))
+        mom (parent node)
+        kid (child node)]
+
+     (write-ast (replace-expr mom node kid))
+    )
+
+  (let [node (->> "struct timeval *ev_tv = &(**pev).ev_timeout;" parse-stmt (get-in-tree [0 1 2 0 0 0]))
+        mom (parent node)
+        kid (child node)]
+
+     (write-ast (replace-expr mom node kid))
+    )
   ))
