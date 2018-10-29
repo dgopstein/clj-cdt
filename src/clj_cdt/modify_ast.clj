@@ -2,11 +2,16 @@
 
 (ns clj-cdt.modify-ast
   (:require
-   [schema.core :as s])
+   [schema.core :as s]
+   [clj-cdt.clj-util :refer :all]
+   [clj-cdt.clj-cdt :refer :all]
+   [clj-cdt.writer-util :refer :all]
+   )
   (:import
-   [org.eclipse.cdt.core.dom.ast IASTNode IASTArrayModifier IASTArraySubscriptExpression
-      IASTBinaryExpression IASTCaseStatement IASTCastExpression
-      IASTConditionalExpression IASTDoStatement IASTEnumerationSpecifier
+   [org.eclipse.cdt.core.dom.ast IASTNode IASTArrayModifier
+      IASTArraySubscriptExpression IASTBinaryExpression IASTCaseStatement
+      IASTCastExpression IASTConditionalExpression IASTDoStatement
+      IASTEnumerationSpecifier IASTEnumerationSpecifier$IASTEnumerator
       IASTEqualsInitializer IASTExpression IASTExpressionList
       IASTExpressionStatement IASTFieldDeclarator IASTFieldReference
       IASTForStatement IASTFunctionCallExpression IASTIfStatement
@@ -17,7 +22,8 @@
       ICPPASTConstructorChainInitializer ICPPASTConstructorInitializer
       ICPPASTDeleteExpression ICPPASTFunctionDeclarator ICPPASTNewExpression
       ICPPASTPackExpansionExpression ICPPASTSimpleTypeConstructorExpression
-      ICPPASTTemplatedTypeTemplateParameter ICPPASTTypenameExpression]
+      ICPPASTTemplateId ICPPASTTemplatedTypeTemplateParameter
+      ICPPASTTypenameExpression]
    [org.eclipse.cdt.core.dom.ast.gnu cpp.IGPPASTSimpleDeclSpecifier
            c.IGCCASTArrayRangeDesignator c.IGCCASTSimpleDeclSpecifier
            IGNUASTGotoStatement]))
@@ -31,7 +37,8 @@
    [IASTCastExpression "Operand"]
    [IASTConditionalExpression "LogicalConditionExpression" "PositiveResultExpression" "NegativeResultExpression"]
    [IASTDoStatement "Condition"]
-   [IASTEnumerationSpecifier "Value"]
+   [IASTEnumerationSpecifier "Name"]
+   [IASTEnumerationSpecifier$IASTEnumerator "Name" "Value"]
    [IASTEqualsInitializer "InitializerClause"]
    [IASTExpressionStatement "Expression"]
    [IASTFieldDeclarator "BitFieldSize"]
@@ -48,7 +55,7 @@
    [ICASTArrayDesignator "SubscriptExpression"]
    [ICPPASTArrayDesignator "SubscriptExpression"]
    [ICPPASTConstructorChainInitializer "InitializerValue"]
-   [ICPPASTConstructorInitializer "Expression"]
+   ;[ICPPASTConstructorInitializer "Expression"]
    [ICPPASTDeleteExpression "Operand"]
    [ICPPASTFunctionDeclarator "NoexceptExpression"]
    [ICPPASTNewExpression "NewPlacement" "NewInitializer" "PlacementArguments"]
@@ -79,33 +86,64 @@
 (s/defn -function-call-getter-setter
   [fn-expr :- IASTFunctionCallExpression]
   (let [args (.getArguments fn-expr)
-        unfrozen-fn-expr (.copy fn-expr)
-        unfrozen-args (.getArguments unfrozen-fn-expr)]
+        thawed-fn-expr (.copy fn-expr)
+        thawed-args (.getArguments thawed-fn-expr)]
     {:getters (cons #(.getFunctionNameExpression fn-expr) (map constantly args))
      :setters
-     (cons #(do (.setFunctionNameExpression unfrozen-fn-expr (.copy %))
-                unfrozen-fn-expr)
-           (->> unfrozen-args
+     (cons #(do (.setFunctionNameExpression thawed-fn-expr (.copy %))
+                thawed-fn-expr)
+           (->> thawed-args
                 (map-indexed
                  (fn [idx _]
                    (fn [new-child]
-                     (aset unfrozen-args idx (.copy new-child))
-                     unfrozen-fn-expr)))))}
+                     (aset thawed-args idx (.copy new-child))
+                     thawed-fn-expr)))))}
+    )
+  )
+
+(s/defn -template-id-getter-setter
+  [template-id :- ICPPASTTemplateId]
+  (let [args (.getTemplateArguments template-id)
+        thawed-template-id (.copy template-id)
+        thawed-args (.getTemplateArguments thawed-template-id)]
+    {:getters (cons #(.getTemplateName template-id) (map constantly args))
+     :setters
+     (cons #(do (.setTemplateName thawed-template-id (.copy %))
+                thawed-template-id)
+           (->> thawed-args
+                (map (fn [old-arg]
+                       (fn [new-arg]
+                         (.replace thawed-template-id old-arg (.copy new-arg))
+                         thawed-template-id)))))}
+    )
+  )
+
+(s/defn -constructor-initializer-getter-setter
+  [cons-init :- ICPPASTConstructorInitializer]
+  (let [args (.getArguments cons-init)
+        thawed-cons-init (.copy cons-init)
+        thawed-args (.getArguments thawed-cons-init)]
+    {:getters (map constantly args)
+     :setters (->> thawed-args
+                (map (fn [old-arg]
+                       (fn [new-arg]
+                         (.replace thawed-cons-init old-arg (.copy new-arg))
+                         thawed-cons-init))))}
     )
   )
 
 (s/defn -expression-list-getter-setter
   [expr-list :- IASTExpressionList]
   (let [exprs (.getExpressions expr-list)
-        unfrozen-expr-list (.copy expr-list)
-        unfrozen-exprs (.getExpressions unfrozen-expr-list)]
+        thawed-expr-list (.copy expr-list)
+        thawed-exprs (.getExpressions thawed-expr-list)]
     {:getters (map constantly exprs)
      :setters
-     (->> unfrozen-exprs
-          (map (fn [unfrozen-expr]
+     (->> thawed-exprs
+          (map (fn [thawed-expr]
                  (fn [new-child]
-                   (.replace unfrozen-expr-list unfrozen-expr (.copy new-child))
-                   unfrozen-expr-list))))}
+                   (.replace thawed-expr-list thawed-expr (.copy new-child))
+                   thawed-expr-list))))}
     )
   )
 
@@ -116,9 +154,11 @@
    equality,and the setters operate on a copy, so that it may be mutated."
   [node :- IASTNode]
   (condp instance? node
-    IASTFunctionCallExpression (-function-call-getter-setter node)
-    IASTExpressionList         (-expression-list-getter-setter node)
-    (let [unfrozen-node (.copy node)
+    IASTFunctionCallExpression    (-function-call-getter-setter node)
+    ICPPASTTemplateId             (-template-id-getter-setter node)
+    IASTExpressionList            (-expression-list-getter-setter node)
+    ICPPASTConstructorInitializer (-constructor-initializer-getter-setter node)
+    (let [thawed-node (.copy node)
           getter-setter-map
             (->> -expr-getters-setters-by-type
             (filter #(instance? (first %) node))
@@ -128,8 +168,8 @@
            (update :getters (partial map #(partial % node)))
            (update :setters (partial map (fn [setter]
                                            (fn [new-child]
-                                             (setter unfrozen-node (.copy new-child))
-                                             unfrozen-node))))
+                                             (setter thawed-node (.copy new-child))
+                                             thawed-node))))
            ))))
 
 (s/defn replace-expr :- IASTNode
