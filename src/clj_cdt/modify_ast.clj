@@ -185,14 +185,12 @@
 
   (assert (=by count old-kids new-kids) (str "Old expressions must be replaced by the same number of new expressions. You tried to replace " (count old-kids) " with " (count new-kids)))
 
-  (if (empty? old-kids)
-    parent
-    (let [{getters :getters setters :setters} (expr-getters-setters parent)
-          old-idxs (map (fn [old-child] (.indexOf (map #(%) getters) old-child)) old-kids)]
+  (let [{getters :getters setters :setters} (expr-getters-setters parent)
+        old-idxs (map (fn [old-child] (.indexOf (map #(%) getters) old-child)) old-kids)]
 
-      (reduce (fn [mom [old-idx new-kid]]
-                (let [setter (nth setters old-idx)]
-                  (setter new-kid))) parent (map vector old-idxs new-kids)))))
+    (reduce (fn [mom [old-idx new-kid]]
+              (let [setter (nth setters old-idx)]
+                (setter new-kid))) parent (map vector old-idxs new-kids))))
 
 (s/defn replace-all-exprs :- IASTNode
   "Update all children inside a parent node.
