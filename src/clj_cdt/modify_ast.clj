@@ -15,8 +15,9 @@
       IASTEqualsInitializer IASTExpression IASTExpressionList
       IASTExpressionStatement IASTFieldDeclarator IASTFieldReference
       IASTForStatement IASTFunctionCallExpression IASTIfStatement
-      IASTInitializerExpression IASTReturnStatement IASTSimpleDeclSpecifier
-      IASTSwitchStatement IASTUnaryExpression IASTWhileStatement]
+      IASTInitializerExpression IASTIdExpression IASTReturnStatement
+      IASTSimpleDeclSpecifier IASTSwitchStatement IASTUnaryExpression
+      IASTWhileStatement]
    [org.eclipse.cdt.core.dom.ast.c ICASTArrayDesignator]
    [org.eclipse.cdt.core.dom.ast.cpp ICPPASTArrayDesignator
       ICPPASTConstructorChainInitializer ICPPASTConstructorInitializer
@@ -47,6 +48,7 @@
    [IASTFunctionCallExpression "FunctionNameExpression"]
    [IASTIfStatement "ConditionExpression"]
    [IASTInitializerExpression "Expression"]
+   [IASTIdExpression "Name"]
    [IASTReturnStatement "ReturnValue"]
    [IASTSimpleDeclSpecifier "DeclTypeExpression"]
    [IASTSwitchStatement "ControllerExpression"]
@@ -160,15 +162,47 @@
                                              thawed-node))))
            ))))
 
-(s/defn replace-expr :- IASTNode
-  "Update a child inside a parent node.
+(s/defn replace-expr-by-idx :- IASTNode
+  "Update a child inside a parent node by its position.
    Returns an updated copy of the parent."
   [parent :- IASTNode
-   old-child :- IASTExpression
-   new-child :- IASTExpression]
+   old-idx :- s/Int
+   new-child :- IASTExpression
+   ]
   (let [{getters :getters setters :setters} (expr-getters-setters parent)
-        old-idx (.indexOf (map #(%) getters) old-child)
         setter (nth setters old-idx)]
 
      (setter new-child)
     ))
+
+(s/defn replace-exprs :- IASTNode
+  "Update multiple children inside a parent node.
+   Returns an updated copy of the parent."
+  [parent :- IASTNode
+   old-kids ;;:- [IASTExpression] - These don't play nicely with java arrays
+   new-kids ;;:- [IASTExpression]
+   ]
+
+  (assert (=by count old-kids new-kids) (str "Old expressions must be replaced by the same number of new expressions. You tried to replace " (count old-kids) " with " (count new-kids)))
+
+  (if (empty? old-kids)
+    parent
+    (let [{getters :getters setters :setters} (expr-getters-setters parent)
+          old-idxs (map (fn [old-child] (.indexOf (map #(%) getters) old-child)) old-kids)]
+
+      (reduce (fn [mom [old-idx new-kid]]
+                (let [setter (nth setters old-idx)]
+                  (setter new-kid))) parent (map vector old-idxs new-kids)))))
+
+(s/defn replace-all-exprs :- IASTNode
+  "Update all children inside a parent node.
+   Returns an updated copy of the parent."
+  [parent new-kids]
+  (replace-exprs parent (children parent) new-kids))
+
+(s/defn replace-expr :- IASTNode
+  "Update a child inside a parent node.
+   Returns an updated copy of the parent."
+  [parent old-child new-child]
+
+  (replace-exprs parent [old-child] [new-child]))

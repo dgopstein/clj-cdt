@@ -6,8 +6,8 @@
             [clj-cdt.modify-ast :refer :all]
             ))
 
-(deftest replace-expr-test
-  (testing "Duplicate the arguments of an arithmetic expression"
+(deftest modify-ast-test
+  (testing "replace-expr"
     (let [expr (parse-expr "1 + 2 * 3")]
       (is (= "2 * 3 + 2 * 3"
              (write-tree
@@ -106,4 +106,26 @@
 
      (write-ast (replace-expr mom node kid))
     )
-  ))
+  )
+
+  (testing "replace-exprs"
+    (let [node (->> "1 + 2" parse-expr)]
+      (-> node
+          (replace-exprs (children node)
+                         (reverse (children node)))
+          write-tree
+          (= "2 + 1")
+          is)
+
+
+      (is (= (replace-exprs node nil nil) node))))
+
+  (testing "replace-expr-by-idx"
+    (let [node (->> "1 + 2" parse-expr)]
+      (-> node
+          (replace-expr-by-idx 1 (parse-expr "3"))
+          write-tree
+          (= "1 + 3")
+          is)))
+  )
+
