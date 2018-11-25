@@ -90,10 +90,11 @@
   (let [args (.getArguments fn-expr)
         thawed-fn-expr (.copy fn-expr)
         thawed-args (.getArguments thawed-fn-expr)]
-    {:getters (cons #(.getFunctionNameExpression fn-expr) (map constantly args))
+    {:getters (cons (fn [] (.getFunctionNameExpression fn-expr)) (map constantly args))
      :setters
-     (cons #(do (.setFunctionNameExpression thawed-fn-expr (.copy %))
-                thawed-fn-expr)
+     (cons (fn [fn-name-expr]
+             (.setFunctionNameExpression thawed-fn-expr (.copy fn-name-expr))
+             thawed-fn-expr)
            (->> thawed-args
                 (map-indexed
                  (fn [idx _]
@@ -153,6 +154,10 @@
             (->> -expr-getters-setters-by-type
             (filter #(instance? (first %) node))
             first last)]
+
+      (when (nil? getter-setter-map)
+        (throw (Exception. (str "Cannot replace children for type: " (typename node)))))
+
           (->
            getter-setter-map
            (update :getters (partial map #(partial % node)))
@@ -167,13 +172,11 @@
    Returns an updated copy of the parent."
   [parent :- IASTNode
    old-idx :- s/Int
-   new-child :- IASTExpression
+   new-child ;; :- IASTExpression ;; (also IASTNames)
    ]
   (let [{getters :getters setters :setters} (expr-getters-setters parent)
         setter (nth setters old-idx)]
-
-     (setter new-child)
-    ))
+     (setter new-child)))
 
 (s/defn replace-exprs :- IASTNode
   "Update multiple children inside a parent node.
@@ -185,18 +188,23 @@
 
   (assert (=by count old-kids new-kids) (str "Old expressions must be replaced by the same number of new expressions. You tried to replace " (count old-kids) " with " (count new-kids)))
 
-  (let [{getters :getters setters :setters} (expr-getters-setters parent)
+  (let [getters (->> parent expr-getters-setters :getters)
         old-idxs (map (fn [old-child] (.indexOf (map #(%) getters) old-child)) old-kids)]
-
     (reduce (fn [mom [old-idx new-kid]]
-              (let [setter (nth setters old-idx)]
-                (setter new-kid))) parent (map vector old-idxs new-kids))))
+              (let [setters (->> mom expr-getters-setters :setters)
+                    setter (nth setters old-idx)]
+                (setter new-kid)
+                ))
+            parent
+            (map vector old-idxs new-kids))))
 
 (s/defn replace-all-exprs :- IASTNode
   "Update all children inside a parent node.
    Returns an updated copy of the parent."
   [parent new-kids]
-  (replace-exprs parent (children parent) new-kids))
+  (try
+    (replace-exprs parent (children parent) new-kids)
+    (catch Exception e parent)))
 
 (s/defn replace-expr :- IASTNode
   "Update a child inside a parent node.
