@@ -20,7 +20,7 @@ files in the `src/clj_cdt/` directory:
 
 * [`clj-cdt`](src/clj_cdt/clj_cdt.clj) - Generic tools for parsing C/C++ and
   reading/analyzing ASTs
-* [`writer-uril`](src/clj_cdt/writer_util.clj) - Serialize ASTs to source code,
+* [`writer-util`](src/clj_cdt/writer_util.clj) - Serialize ASTs to source code,
   or tree view, or debugging output
 * [`expr-operator`](src/clj_cdt/expr_operator.clj) - CDT groups all
   unary/binary/ternary operators together (respectively). This module is a
